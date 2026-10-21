@@ -23,6 +23,8 @@ async function naiveConsume(tokenHash: string, now: Date): Promise<boolean> {
 
 const atomic = new PostgresResetTokenStore(pool);
 
+console.log(`${CONCURRENCY} simultaneous requests redeem ONE reset token, ${ROUNDS} rounds. Successful redemptions per round:\n`);
+
 for (const [label, consume] of [
   ["naive  (select, then update)", (hash: string, now: Date) => naiveConsume(hash, now)],
   ["atomic (one conditional UPDATE)", async (hash: string, now: Date) => (await atomic.consume(hash, now)) !== null],
@@ -35,6 +37,6 @@ for (const [label, consume] of [
     const results = await Promise.all(Array.from({ length: CONCURRENCY }, () => consume(hash, now)));
     wins.push(results.filter(Boolean).length);
   }
-  console.log(`${label.padEnd(33)} redemptions of ONE token across ${ROUNDS} rounds of ${CONCURRENCY} simultaneous requests: ${wins.join(", ")}`);
+  console.log(`${label.padEnd(33)}${wins.join(", ")}`);
 }
 await pool.end();
