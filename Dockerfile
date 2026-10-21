@@ -1,7 +1,7 @@
 # Builds the library, packs it exactly as it would be published, then installs that
 # tarball into a minimal runtime image. The container therefore runs the packed
 # artifact, not the source tree, which is what catches packaging mistakes.
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
@@ -10,7 +10,7 @@ COPY src ./src
 COPY examples ./examples
 RUN npm run build && npm run build:example && npm pack --pack-destination /tmp
 
-FROM node:20-alpine
+FROM node:26-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /tmp/authcore-ts-*.tgz /tmp/
