@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: authcore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d authcore"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/authcore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test with coverage (in-memory and real Postgres)
+        run: npm run test:coverage
+      - name: Upload coverage
+        if: matrix.node == 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+
+  package:
+    name: Package is valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Package exports and types are correct for ESM and CJS consumers
+        run: npm run check:package
+      - name: Example server builds
+        run: npm run build:example
+
+  docker:
+    name: Docker image and end-to-end smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the stack (app + Postgres)
+        run: docker compose up --build -d
+      - name: Wait for the app to be healthy
+        run: |
+          for i in $(seq 1 40); do
+            curl -fs http://localhost:3000/healthz && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - name: Smoke test over real HTTP
+        run: |
+          docker compose logs -f app > server.log 2>&1 &
+          sleep 1
+          SERVER_LOG=server.log ./scripts/smoke.sh
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Container runs as a non-root user
+        run: test "$(docker compose exec -T app id -u)" != "0"
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high

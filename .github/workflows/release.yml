@@ -1,0 +1,48 @@
+name: Release
+
+# Publishing is off until the repository variable PUBLISH_TO_NPM is set to "true"
+# and an NPM_TOKEN secret exists. Until then, pushing a tag does nothing harmful.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: ${{ vars.PUBLISH_TO_NPM == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: authcore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d authcore"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/authcore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck && npm run lint && npm test
+      - run: npm run build && npm run check:package
+      - name: Tag matches package.json version
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

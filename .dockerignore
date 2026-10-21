@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+examples/server/dist
+.git
+.github
+*.tgz
+.env

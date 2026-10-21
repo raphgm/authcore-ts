@@ -1,0 +1,32 @@
+# Runs the example server with Postgres:  docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: authcore
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d authcore"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/authcore
+      AUTO_MIGRATE: "1"
+      # Demo values only. Generate a real secret with: openssl rand -base64 48
+      SESSION_SECRET: ${SESSION_SECRET:-demo-only-secret-change-me-0123456789abcdef0123456789}
+      COOKIE_SECURE: "false"
+      ALLOWED_ORIGINS: http://localhost:3000
+      LOG_RESET_LINKS: "1"
+      SEED_ADMIN_EMAIL: admin@example.test
+      SEED_ADMIN_PASSWORD: correct-horse-9
+      SEED_VIEWER_EMAIL: viewer@example.test
+      SEED_VIEWER_PASSWORD: viewer-password-9
