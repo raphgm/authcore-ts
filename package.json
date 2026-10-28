@@ -35,17 +35,17 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
-    "@vitest/coverage-v8": "^2.1.9",
-    "eslint": "^9.39.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.13.0",
     "pg": "^8.23.1",
     "publint": "^0.3.25",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "tsx": "^4.23.15",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.72.0",
-    "vitest": "^2.1.9"
+    "vitest": "^5.0.5"
   },
   "type": "module",
   "sideEffects": false,
