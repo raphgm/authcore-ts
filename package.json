@@ -31,7 +31,7 @@
   "description": "Framework-agnostic TypeScript auth core: bcrypt password hashing, revocable signed sessions, typed RBAC, rate limiting and single-use reset tokens. Extracted from AssetOps.",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "jose": "^6.2.13"
+    "jose": "^6.2.15"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
